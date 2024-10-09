@@ -18,8 +18,6 @@ jobs:
     - name: Update HTML with Issue Content
       run: |
         echo "Fetching issue content and updating HTML file..."
-
-        # Issueの内容を取得
         ISSUE_BODY="${{ github.event.issue.body }}"
         ISSUE_TITLE="${{ github.event.issue.title }}"
 
@@ -45,23 +43,17 @@ jobs:
                 .label { font-weight: bold; color: #2980b9; }
             </style>
         </head>
-        <body>
-            <h1>研究室情報一覧</h1>
-            <div class='container'>
-                <div class='lab-container'>
-                    <h2>研究室名: ${ISSUE_TITLE}</h2>
-                    <p><span class='label'>紹介文:</span> ${ISSUE_BODY}</p>
-                </div>
-            </div>
-        </body>
-        </html>" > $HTML_FILE
+         <body>
+              <h1>${ISSUE_TITLE}</h1>
+              <p>${ISSUE_BODY}</p>
+          </body>
+          </html>" > index.html
 
-    # 3. 変更をコミットしてプッシュ
-    - name: Commit and push changes
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add $HTML_FILE       # ファイルをステージに追加
-        git commit -m "Updated HTML with new lab info from Issue #${{ github.event.issue.number }}"
-        git push
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html  # ファイル名を直接指定
+          git commit -m "Updated HTML with new lab info from Issue #${{ github.event.issue.number }}"
+          git push
 
