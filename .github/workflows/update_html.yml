@@ -1,0 +1,36 @@
+name: Update HTML from Issue
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  update-html:
+    runs-on: ubuntu-latest
+
+    steps:
+      # リポジトリをチェックアウト
+      - uses: actions/checkout@v2
+
+      # Issueの内容を取得し、HTMLに反映
+      - name: Update HTML with Issue Content
+        run: |
+          echo "Updating HTML file with new issue content"
+
+          # Issueの内容を取得（例: GitHubの環境変数からIssue Bodyを使用）
+          ISSUE_BODY="${{ github.event.issue.body }}"
+
+          # 既存のHTMLファイルを読み込む
+          HTML_FILE="index.html"
+
+          # 研究室情報のプレースホルダーをIssue Bodyで置き換える
+          echo "$ISSUE_BODY" | sed -e "s/{{Lab Name}}/$ISSUE_BODY/" -e "s/{{Introduction}}/$ISSUE_BODY/" \
+           -e "s/{{Research Themes}}/$ISSUE_BODY/" -e "s/{{Seminar Frequency}}/$ISSUE_BODY/" \
+           -e "s/{{Lab Atmosphere}}/$ISSUE_BODY/" -e "s/{{Research Fields}}/$ISSUE_BODY/" > $HTML_FILE
+
+          # 変更をコミットしてプッシュ
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add $HTML_FILE
+          git commit -m "Updated HTML with new lab info from Issue #${{ github.event.issue.number }}"
+          git push
