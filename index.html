@@ -1,111 +1,29 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang='ja'>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>研究室情報サイト</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f0f4f8;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        h1 {
-            text-align: center;
-            margin-top: 50px;
-            font-size: 2.5em;
-            color: #2c3e50;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .lab-container {
-            background: #fff;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-        }
-
-        .lab-image {
-            width: 30%;
-            height: auto;
-            border-radius: 10px;
-            object-fit: cover;
-        }
-
-        .lab-info h2 {
-            margin-top: 0;
-            font-size: 1.8em;
-            color: #34495e;
-        }
-
-        .lab-info p {
-            margin: 10px 0;
-            font-size: 1em;
-            line-height: 1.6;
-            color: #555;
-        }
-
-        .label {
-            font-weight: bold;
-            color: #2980b9;
-        }
-
-        /* レスポンシブ対応 */
-        @media (max-width: 768px) {
-            .lab-container {
-                flex-direction: column;
-                text-align: left;
-            }
-
-            .more-info-btn:hover {
-                background-color: #1c5980;
-            }
-
-            .lab-image {
-                width: 100%;
-                margin-bottom: 15px;
-            }
-        }
+        body { font-family: 'Roboto', sans-serif; background-color: #f0f4f8; margin: 0; padding: 0; color: #333; }
+        h1 { text-align: center; margin-top: 50px; font-size: 2.5em; color: #2c3e50; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .lab-container { background: #fff; padding: 20px; margin-bottom: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+        .lab-info h2 { margin-top: 0; font-size: 1.8em; color: #34495e; }
+        .lab-info p { margin: 10px 0; font-size: 1em; line-height: 1.6; color: #555; }
+        .label { font-weight: bold; color: #2980b9; }
     </style>
 </head>
 <body>
-    <h1>研究室情報一覧</h1>
-    <div class="container">
-        <div class="lab-container">
-            <!-- Lab Name -->
-            <h2>研究室名: <span id="lab-name">{{Lab Name}}</span></h2>
+    <h1>New Research Lab: df</h1>
+    <p>Lab Name: df
+Introduction: df
+Research Themes: df
+Seminar Frequency: 週１未満
+Lab Atmosphere: コアタイムなし
+Research Fields: 分子生物学
 
-            <!-- Introduction -->
-            <p><span class="label">紹介文:</span></p>
-            <p><span id="lab-introduction">{{Introduction}}</span></p>
-
-            <!-- Research Themes -->
-            <p><span class="label">卒研のテーマ例:</span> <span id="lab-theme">{{Research Themes}}</span></p>
-
-            <!-- Seminar Frequency -->
-            <p><span class="label">ゼミ回数:</span> <span id="lab-seminar">{{Seminar Frequency}}</span></p>
-
-            <!-- Lab Atmosphere -->
-            <p><span class="label">研究室の雰囲気:</span> <span id="lab-atmosphere">{{Lab Atmosphere}}</span></p>
-
-            <!-- Research Fields -->
-            <p><span class="label">研究分野:</span> <span id="lab-fields">{{Research Fields}}</span></p>
-        </div>
-    </div>
+</p>
 </body>
 </html>
