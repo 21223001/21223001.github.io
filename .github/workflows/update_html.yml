@@ -16,113 +16,125 @@ jobs:
       - name: Checkout repository content
         uses: actions/checkout@v3
 
-      # 2. jqをインストール
-      - name: Install jq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-
-      # 3. Node.jsをセットアップ
+      # 2. Node.js をセットアップ
       - name: Setup Node.js environment
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
 
-      # 4. Issueの内容を取得し、labs.jsonに追加
+      # 3. Issue の内容を取得し、labs.json に追加
       - name: Update labs.json with Issue Content
         run: |
-          echo "Updating labs.json with new issue content..."
+          set -e
+          set -x
 
-          # ISSUE_BODYとISSUE_TITLEを取得
           ISSUE_BODY="${{ github.event.issue.body }}"
           ISSUE_TITLE="${{ github.event.issue.title }}"
           ISSUE_NUMBER="${{ github.event.issue.number }}"
 
-          # labs.jsonが存在しない場合は空の配列を作成
-          if [ ! -f labs.json ]; then
+          # labs.json が存在しない、または空の場合は初期化
+          if [ ! -s labs.json ]; then
             echo "[]" > labs.json
           fi
 
-          # 新しい研究室情報を一時ファイルに保存
-          echo "{
-            \"id\": $ISSUE_NUMBER,
-            \"title\": \"$ISSUE_TITLE\",
-            \"body\": \"$ISSUE_BODY\"
-          }" > new_lab.json
+          # labs.json が有効な JSON であるか検証
+          if ! jq empty labs.json; then
+            echo "labs.json が不正な JSON フォーマットです。修正または削除してください。"
+            exit 1
+          fi
 
-          # labs.jsonに新しい研究室情報を追加
+          # 新しい研究室情報を new_lab.json に保存
+          jq -n --arg id "$ISSUE_NUMBER" --arg title "$ISSUE_TITLE" --arg body "$ISSUE_BODY" \
+            '{id: ($id | tonumber), title: $title, body: $body}' > new_lab.json
+
+          # labs.json に新しい研究室情報を追加
           jq '. += [ input ]' labs.json new_lab.json > updated_labs.json
+          if [ $? -ne 0 ]; then
+            echo "jq コマンドでエラーが発生しました。"
+            exit 1
+          fi
+
           mv updated_labs.json labs.json
 
-      # 5. labs.jsonからindex.htmlを生成
+      # 4. labs.json から index.html を生成
       - name: Generate index.html from labs.json
         run: |
-          echo "Generating index.html from labs.json..."
+          set -e
+          set -x
 
-          # labs.jsonを読み込んでHTMLを生成
+          # generate_html.js を作成
           cat << 'EOF' > generate_html.js
           const fs = require('fs');
 
-          // labs.jsonからデータを読み込む
-          const labsData = JSON.parse(fs.readFileSync('labs.json', 'utf8'));
+          try {
+            // labs.json からデータを読み込む
+            const labsData = JSON.parse(fs.readFileSync('labs.json', 'utf8'));
 
-          // 目次と研究室情報のコンテンツを格納する変数
-          let toc = '';
-          let labsContent = '';
+            // 目次と研究室情報のコンテンツを格納する変数
+            let toc = '';
+            let labsContent = '';
 
-          labsData.forEach((lab) => {
-            const labId = `lab-${lab.id}`;
-            const title = lab.title;
-            const body = lab.body.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\r\n|\r|\n/g, '<br>');
+            labsData.forEach((lab) => {
+              const labId = `lab-${lab.id}`;
+              const title = lab.title;
+              const body = lab.body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                                   .replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\r\n|\r|\n/g, '<br>');
 
-            // 目次にリンクを追加
-            toc += `<li><a href="#${labId}">${title}</a></li>\n`;
+              // 目次にリンクを追加
+              toc += `<li><a href="#${labId}">${title}</a></li>\n`;
 
-            // 研究室情報を追加
-            labsContent += `
-              <div class="lab-container" id="${labId}">
-                <h2>${title}</h2>
-                <p>${body}</p>
+              // 研究室情報を追加
+              labsContent += `
+                <div class="lab-container" id="${labId}">
+                  <h2>${title}</h2>
+                  <p>${body}</p>
+                </div>
+              `;
+            });
+
+            // 最終的なHTMLを構築
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="ja">
+            <head>
+              <meta charset="UTF-8">
+              <title>研究室情報一覧</title>
+              <style>
+                /* スタイルシートをここに記述 */
+                body { font-family: Arial, sans-serif; }
+                .lab-container { margin-bottom: 20px; }
+              </style>
+            </head>
+            <body>
+              <h1>研究室情報一覧</h1>
+              <h2>目次</h2>
+              <ul>
+                ${toc}
+              </ul>
+              <div class="container">
+                ${labsContent}
               </div>
+            </body>
+            </html>
             `;
-          });
 
-          // 最終的なHTMLを構築
-          const htmlContent = `
-          <!DOCTYPE html>
-          <html lang="ja">
-          <head>
-            <meta charset="UTF-8">
-            <title>研究室情報一覧</title>
-            <style>
-              /* スタイルシートをここに記述 */
-              body { font-family: Arial, sans-serif; }
-              .lab-container { margin-bottom: 20px; }
-            </style>
-          </head>
-          <body>
-            <h1>研究室情報一覧</h1>
-            <h2>目次</h2>
-            <ul>
-              ${toc}
-            </ul>
-            <div class="container">
-              ${labsContent}
-            </div>
-          </body>
-          </html>
-          `;
-
-          // index.htmlに書き込み
-          fs.writeFileSync('index.html', htmlContent);
+            // index.html に書き込み
+            fs.writeFileSync('index.html', htmlContent);
+          } catch (error) {
+            console.error("エラーが発生しました:", error);
+            process.exit(1);
+          }
           EOF
 
-          # Node.jsスクリプトを実行
+          # Node.js スクリプトを実行
           node generate_html.js
 
-      # 6. 変更をコミットしてプッシュ
+      # 5. 変更をコミットしてプッシュ
       - name: Commit and push changes
         run: |
+          set -e
+          set -x
+
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html labs.json
