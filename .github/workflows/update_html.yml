@@ -21,20 +21,40 @@ jobs:
 
         # Issueの内容を取得
         ISSUE_BODY="${{ github.event.issue.body }}"
-        
-        # Issueタイトルを取得（研究室名に使用）
         ISSUE_TITLE="${{ github.event.issue.title }}"
 
         # HTMLファイルのパス
         HTML_FILE="index.html"
 
-        # HTMLファイルにIssueの内容を追加
+        # HTMLファイル全体を上書きする
         echo "
-        <div class='lab-container'>
-          <h2>研究室名: ${ISSUE_TITLE}</h2>
-          <p><strong>紹介文:</strong> ${ISSUE_BODY}</p>
-        </div>
-        " >> $HTML_FILE
+        <!DOCTYPE html>
+        <html lang='ja'>
+        <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <title>研究室情報サイト</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+                body { font-family: 'Roboto', sans-serif; background-color: #f0f4f8; margin: 0; padding: 0; color: #333; }
+                h1 { text-align: center; margin-top: 50px; font-size: 2.5em; color: #2c3e50; }
+                .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+                .lab-container { background: #fff; padding: 20px; margin-bottom: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+                .lab-info h2 { margin-top: 0; font-size: 1.8em; color: #34495e; }
+                .lab-info p { margin: 10px 0; font-size: 1em; line-height: 1.6; color: #555; }
+                .label { font-weight: bold; color: #2980b9; }
+            </style>
+        </head>
+        <body>
+            <h1>研究室情報一覧</h1>
+            <div class='container'>
+                <div class='lab-container'>
+                    <h2>研究室名: ${ISSUE_TITLE}</h2>
+                    <p><span class='label'>紹介文:</span> ${ISSUE_BODY}</p>
+                </div>
+            </div>
+        </body>
+        </html>" > $HTML_FILE
 
     # 3. 変更をコミットしてプッシュ
     - name: Commit and push changes
