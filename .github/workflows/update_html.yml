@@ -16,7 +16,19 @@ jobs:
       - name: Checkout repository content
         uses: actions/checkout@v3
 
-      # 2. Issueの内容を取得し、labs.jsonに追加
+      # 2. jqをインストール
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      # 3. Node.jsをセットアップ
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      # 4. Issueの内容を取得し、labs.jsonに追加
       - name: Update labs.json with Issue Content
         run: |
           echo "Updating labs.json with new issue content..."
@@ -42,7 +54,7 @@ jobs:
           jq '. += [ input ]' labs.json new_lab.json > updated_labs.json
           mv updated_labs.json labs.json
 
-      # 3. labs.jsonからindex.htmlを生成
+      # 5. labs.jsonからindex.htmlを生成
       - name: Generate index.html from labs.json
         run: |
           echo "Generating index.html from labs.json..."
@@ -58,10 +70,10 @@ jobs:
           let toc = '';
           let labsContent = '';
 
-          labsData.forEach((lab, index) => {
+          labsData.forEach((lab) => {
             const labId = `lab-${lab.id}`;
             const title = lab.title;
-            const body = lab.body.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>');
+            const body = lab.body.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\r\n|\r|\n/g, '<br>');
 
             // 目次にリンクを追加
             toc += `<li><a href="#${labId}">${title}</a></li>\n`;
@@ -108,7 +120,7 @@ jobs:
           # Node.jsスクリプトを実行
           node generate_html.js
 
-      # 4. 変更をコミットしてプッシュ
+      # 6. 変更をコミットしてプッシュ
       - name: Commit and push changes
         run: |
           git config --global user.name "github-actions[bot]"
@@ -116,4 +128,3 @@ jobs:
           git add index.html labs.json
           git commit -m "Add lab info from Issue #${{ github.event.issue.number }}"
           git push
-
