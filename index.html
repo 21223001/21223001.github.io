@@ -67,14 +67,37 @@
     .lab-name, .introduction, .research-themes, .seminar-frequency, .lab-atmosphere, .research-fields {
       margin-bottom: 20px;
     }
+
+    /* 管理画面リンクのスタイル */
+    .admin-link {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #0056b3;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+      z-index: 1000; /* 他の要素より前面に表示 */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: background-color 0.3s ease;
+    }
+    .admin-link:hover {
+      background-color: #003f7f;
+    }
   </style>
 </head>
 <body>
+  <!-- 管理画面へのリンクを追加 -->
+  <a href="/admin/" class="admin-link">管理画面へ</a>
+  
   <h1>研究室情報一覧</h1>
   
   <h2>目次</h2>
   <ul>
     <li><a href="#lab-13">New Research Lab: xcv</a></li>
+    <!-- 他の研究室リンクがあればここに追加 -->
   </ul>
 
   <div class="container">
