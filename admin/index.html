@@ -1,14 +1,28 @@
-<!-- admin/index.html -->
+<!-- admin/index.html の修正後 -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <title>管理画面</title>
-  <script src="https://unpkg.com/netlify-cms@^2.0.0/dist/netlify-cms.js"></script>
+  <script>
+    // 認証チェック
+    function checkAuthentication() {
+      const isAuthenticated = sessionStorage.getItem('authenticated');
+      if (isAuthenticated !== 'true') {
+        // 未認証の場合、ログインページにリダイレクト
+        window.location.href = '/login.html';
+      }
+    }
+
+    // ページ読み込み時に認証をチェック
+    window.onload = checkAuthentication;
+  </script>
 </head>
 <body>
-  <script>
-    window.CMS_MANUAL_INIT = true;
-  </script>
+  <h2>管理画面</h2>
+  <a href="/admin/">Netlify CMS管理画面へ</a>
+  <br><br>
+  <a href="/logout.html">ログアウト</a> <!-- オプション: ログアウトリンク -->
 </body>
 </html>
+
