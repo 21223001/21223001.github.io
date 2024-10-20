@@ -1,8 +1,14 @@
-name: Update HTML from Issue
+# .github/workflows/update-html.yml
+name: Update HTML from Issue and CMS
 
 on:
   issues:
     types: [opened]
+  push:
+    paths:
+      - 'labs_auto.json'
+      - 'admin/**'
+      - 'labs/**'
 
 permissions:
   contents: write
@@ -22,8 +28,9 @@ jobs:
         with:
           node-version: '18'
 
-      # 3. Issue の内容を取得し、labs.json に追加
-      - name: Update labs.json with Issue Content
+      # 3. Issue の内容を取得し、labs_auto.json に追加
+      - name: Update labs_auto.json with Issue Content
+        if: github.event_name == 'issues'
         run: |
           set -e
           set -x
@@ -32,32 +39,54 @@ jobs:
           ISSUE_TITLE="${{ github.event.issue.title }}"
           ISSUE_NUMBER="${{ github.event.issue.number }}"
 
-          # labs.json が存在しない、または空の場合は初期化
-          if [ ! -s labs.json ]; then
-            echo "[]" > labs.json
+          # labs_auto.json が存在しない、または空の場合は初期化
+          if [ ! -s labs_auto.json ]; then
+            echo "[]" > labs_auto.json
           fi
 
-          # labs.json が有効な JSON であるか検証
-          if ! jq empty labs.json; then
-            echo "labs.json が不正な JSON フォーマットです。修正または削除してください。"
+          # labs_auto.json が有効な JSON であるか検証
+          if ! jq empty labs_auto.json; then
+            echo "labs_auto.json が不正な JSON フォーマットです。修正または削除してください。"
             exit 1
           fi
 
-          # 新しい研究室情報を new_lab.json に保存
-          jq -n --arg id "$ISSUE_NUMBER" --arg title "$ISSUE_TITLE" --arg body "$ISSUE_BODY" \
-            '{id: ($id | tonumber), title: $title, body: $body}' > new_lab.json
+          # Image URL を抽出（Googleドライブの直接リンクに変換）
+          IMAGE_URL=$(echo "$ISSUE_BODY" | grep '^Image URL:' | sed 's/^Image URL:\s*//')
+          # 直接ダウンロードリンクに変換
+          DIRECT_IMAGE_URL=$(echo "$IMAGE_URL" | sed 's/open\?id=/uc?export=view&id=/')
 
-          # labs.json に新しい研究室情報を追加
-          jq '. += [ input ]' labs.json new_lab.json > updated_labs.json
+          # 新しい研究室情報を new_lab_auto.json に保存
+          jq -n --arg id "$ISSUE_NUMBER" --arg title "$ISSUE_TITLE" --arg body "$ISSUE_BODY" --arg image "$DIRECT_IMAGE_URL" \
+            '{id: ($id | tonumber), title: $title, body: $body, image: $image}' > new_lab_auto.json
+
+          # labs_auto.json に新しい研究室情報を追加
+          jq '. += [ input ]' labs_auto.json new_lab_auto.json > updated_labs_auto.json
           if [ $? -ne 0 ]; then
             echo "jq コマンドでエラーが発生しました。"
             exit 1
           fi
 
-          mv updated_labs.json labs.json
+          mv updated_labs_auto.json labs_auto.json
 
-      # 4. labs.json から index.html を生成
-      - name: Generate index.html from labs.json
+      # 4. 画像をダウンロードして images フォルダに保存（自動更新用）
+      - name: Download and Save Image from Issue
+        if: github.event_name == 'issues'
+        run: |
+          set -e
+          set -x
+
+          IMAGE_URL="${{ steps.update-labs_auto.json.outputs.image }}"
+          IMAGE_NAME="lab-auto-${{ github.event.issue.number }}.jpg"
+          IMAGE_PATH="images/uploads/${IMAGE_NAME}"
+
+          # images/uploads フォルダが存在しない場合は作成
+          mkdir -p images/uploads
+
+          # 画像をダウンロード
+          curl -L "$DIRECT_IMAGE_URL" -o "$IMAGE_PATH"
+
+      # 5. labs.json と labs_auto.json を統合して index.html を生成
+      - name: Generate index.html from JSON Files
         run: |
           set -e
           set -x
@@ -67,18 +96,63 @@ jobs:
           const fs = require('fs');
 
           try {
-            // labs.json からデータを読み込む
-            const labsData = JSON.parse(fs.readFileSync('labs.json', 'utf8'));
+            // 手動編集用の labs フォルダからデータを読み込む
+            const manualLabs = [];
+            const manualFiles = fs.readdirSync('labs');
+            manualFiles.forEach(file => {
+              if (file.endsWith('.md')) {
+                const content = fs.readFileSync(`labs/${file}`, 'utf8');
+                const idMatch = content.match(/id:\s*(\d+)/);
+                const titleMatch = content.match(/title:\s*(.*)/);
+                const bodyMatch = content.match(/body:\s*([\s\S]*)/);
+                const imageMatch = content.match(/image:\s*(.*)/);
+                if (idMatch && titleMatch && bodyMatch && imageMatch) {
+                  manualLabs.push({
+                    id: parseInt(idMatch[1]),
+                    title: titleMatch[1].trim(),
+                    body: bodyMatch[1].trim(),
+                    image: imageMatch[1].trim()
+                  });
+                }
+              }
+            });
+
+            // 自動更新用の labs_auto.json からデータを読み込む
+            const autoLabs = JSON.parse(fs.readFileSync('labs_auto.json', 'utf8'));
+
+            // 両方のデータを統合
+            const allLabs = [...manualLabs, ...autoLabs];
 
             // 目次と研究室情報のコンテンツを格納する変数
             let toc = '';
             let labsContent = '';
 
-            labsData.forEach((lab) => {
+            allLabs.forEach((lab) => {
               const labId = `lab-${lab.id}`;
               const title = lab.title;
-              const body = lab.body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                                   .replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\r\n|\r|\n/g, '<br>');
+              const bodyLines = lab.body.split('\n');
+              let bodyHtml = '';
+              let imageHtml = '';
+
+              bodyLines.forEach(line => {
+                if (line.startsWith('Image URL:')) {
+                  const imageUrl = line.replace('Image URL:', '').trim();
+                  if (imageUrl) {
+                    imageHtml = `<img src="${lab.image}" alt="${title}の画像" style="max-width:100%; height:auto; margin-top:10px;">`;
+                  }
+                } else {
+                  // 他のフィールドを処理
+                  const parts = line.split(':');
+                  if (parts.length >= 2) {
+                    const key = parts[0].trim();
+                    const value = parts.slice(1).join(':').trim();
+                    bodyHtml += `<div class="${key.toLowerCase().replace(/\s+/g, '-')}">
+                                   <div class="section-title">${key}</div>
+                                   <div class="section-content">${value}</div>
+                                 </div>\n`;
+                  }
+                }
+              });
 
               // 目次にリンクを追加
               toc += `<li><a href="#${labId}">${title}</a></li>\n`;
@@ -87,7 +161,8 @@ jobs:
               labsContent += `
                 <div class="lab-container" id="${labId}">
                   <h2>${title}</h2>
-                  <p>${body}</p>
+                  ${imageHtml}
+                  ${bodyHtml}
                 </div>
               `;
             });
@@ -100,9 +175,77 @@ jobs:
               <meta charset="UTF-8">
               <title>研究室情報一覧</title>
               <style>
-                /* スタイルシートをここに記述 */
-                body { font-family: Arial, sans-serif; }
-                .lab-container { margin-bottom: 20px; }
+                /* ページ全体のスタイル */
+                body {
+                  font-family: Arial, sans-serif;
+                  background: linear-gradient(135deg, #f0f4f8, #c2d4dd);
+                  margin: 0;
+                  padding: 20px;
+                }
+                h1 {
+                  text-align: center;
+                  color: #333;
+                }
+
+                /* 目次スタイル */
+                ul {
+                  list-style-type: none;
+                  padding: 0;
+                  margin: 0 0 30px 0;
+                }
+                ul li {
+                  margin-bottom: 10px;
+                }
+                ul li a {
+                  color: #0056b3;
+                  text-decoration: none;
+                  font-weight: bold;
+                }
+                ul li a:hover {
+                  text-decoration: underline;
+                }
+
+                /* 研究室のコンテナ */
+                .container {
+                  max-width: 800px;
+                  margin: 0 auto;
+                }
+                
+                /* 研究室情報のボックス */
+                .lab-container {
+                  background-color: white;
+                  border-radius: 10px;
+                  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                  margin-bottom: 30px;
+                  padding: 20px;
+                }
+
+                /* 各セクション（Lab Name, Introductionなど）のスタイル */
+                .section-title {
+                  font-weight: bold;
+                  font-size: 1.2em;
+                  color: #0056b3;
+                  margin-bottom: 10px;
+                }
+                .section-content {
+                  background-color: #f9f9f9;
+                  border-radius: 5px;
+                  padding: 10px;
+                  margin-bottom: 20px;
+                }
+
+                /* 各項目の見た目 */
+                .lab-name, .introduction, .research-themes, .seminar-frequency, .lab-atmosphere, .research-fields {
+                  margin-bottom: 20px;
+                }
+
+                /* 画像スタイル */
+                .lab-container img {
+                  max-width: 100%;
+                  height: auto;
+                  margin-top: 10px;
+                  border-radius: 5px;
+                }
               </style>
             </head>
             <body>
@@ -129,13 +272,18 @@ jobs:
           # Node.js スクリプトを実行
           node generate_html.js
 
-      # 5. 変更をコミットしてプッシュ
+      # 6. 変更をコミットしてプッシュ
       - name: Commit and push changes
         run: |
           set -e
           set -x
 
           git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html labs_auto.json images/uploads/
+          git commit -m "Update lab info from Issue or CMS"
+          git push
+
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html labs.json
           git commit -m "Add lab info from Issue #${{ github.event.issue.number }}"
