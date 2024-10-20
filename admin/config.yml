@@ -1,0 +1,19 @@
+# admin/config.yml
+backend:
+  name: git-gateway
+  branch: main  # デフォルトブランチが異なる場合は変更
+
+media_folder: "images/uploads"  # メディアファイルの保存先（リポジトリ内）
+public_folder: "/images/uploads"  # 公開URL
+
+collections:
+  - name: "labs"
+    label: "研究室情報"
+    folder: "labs"
+    create: true
+    slug: "{{id}}"
+    fields:
+      - { label: "ID", name: "id", widget: "number" }
+      - { label: "タイトル", name: "title", widget: "string" }
+      - { label: "本文", name: "body", widget: "markdown" }
+      - { label: "画像", name: "image", widget: "image" }
