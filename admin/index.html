@@ -3,64 +3,15 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>管理画面</title>
-  <script>
-    // 認証チェック
-    function checkAuthentication() {
-      const isAuthenticated = sessionStorage.getItem('authenticated');
-      if (isAuthenticated !== 'true') {
-        // 未認証の場合、ログインページにリダイレクト
-        window.location.href = '/login.html';
-      }
-    }
-
-    // ページ読み込み時に認証をチェック
-    window.onload = checkAuthentication;
-  </script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    .button-container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-width: 200px;
-      margin: 0 auto;
-    }
-    .button-container a, .button-container button {
-      text-align: center;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 5px;
-      text-decoration: none;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    .cms-button {
-      background-color: #0056b3;
-    }
-    .cms-button:hover {
-      background-color: #003f7f;
-    }
-    .logout-button {
-      background-color: #dc3545;
-    }
-    .logout-button:hover {
-      background-color: #c82333;
-    }
-  </style>
+  <title>Content Manager</title>
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/netlify-cms@^2.0.0/dist/netlify-cms.css">
 </head>
 <body>
-  <h2>管理画面</h2>
-  <div class="button-container">
-    <!-- Netlify CMS管理画面へのリンク -->
-    <a href="/admin/" class="cms-button">Netlify CMS管理画面へ</a>
-    
-    <!-- ログアウトリンク -->
+  <script src="https://unpkg.com/netlify-cms@^2.0.0/dist/netlify-cms.js"></script>
+</body>
+</html>
+
     <a href="/logout.html" class="logout-button">ログアウト</a>
   </div>
 </body>
